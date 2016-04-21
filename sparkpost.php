@@ -47,6 +47,44 @@ function sparkpost_civicrm_install() {
   _sparkpost_civix_civicrm_install();
   // Check dependencies and display error messages
   sparkpost_check_dependencies();
+  $mailingParams = array(
+    'subject' => '***All Transactional Emails Through Sparkpost***',
+    'name' => ts('Transaction Emails Sparkpost'),
+    'url_tracking' => TRUE,
+    'forward_replies' => FALSE,
+    'auto_responder' => FALSE,
+    'open_tracking' => TRUE,
+    'is_completed' => FALSE,
+  );
+
+  //create entry in civicrm_mailing
+  $mailing = CRM_Mailing_BAO_Mailing::add($mailingParams, CRM_Core_DAO::$_nullArray);
+
+  //add entry in civicrm_mailing_job
+  $config = CRM_Core_Config::singleton();
+  if (property_exists($config, 'civiVersion')) {
+    $civiVersion = $config->civiVersion;
+  }
+  else {
+    $civiVersion = CRM_Core_BAO_Domain::version();
+  }
+  
+  $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
+  if (version_compare('4.4alpha1', $civiVersion) > 0) {
+    $jobCLassName = 'CRM_Mailing_DAO_Job';
+  }
+  
+  $changeENUM = FALSE;
+  if (version_compare('4.5alpha1', $civiVersion) > 0) {
+    $changeENUM = TRUE;
+  }
+  CRM_Core_Smarty::singleton()->assign('changeENUM', $changeENUM);
+  $saveJob = new $jobCLassName();
+  $saveJob->start_date = $saveJob->end_date = date('YmdHis');
+  $saveJob->status = 'Complete';
+  $saveJob->job_type = "Special: All transactional emails being sent through Sparkpost";
+  $saveJob->mailing_id = $mailing->id;
+  $saveJob->save();
 }
 
 /**
@@ -187,4 +225,81 @@ function sparkpost_check_dependencies($display = TRUE) {
 function sparkpost_log($message) {
   $config = CRM_Core_Config::singleton();
   file_put_contents($config->configAndLogDir . 'sparkpost_log', $message . PHP_EOL, FILE_APPEND);
+}
+
+function sparkpost_civicrm_alterMailParams(&$params, $context = NULL) {
+  if ($context != 'civimail') {//Create meta data for transactional email
+    $mail = new CRM_Mailing_DAO_Mailing();
+    $mail->subject = "***All Transactional Emails Through Sparkpost***";
+    $mail->url_tracking = TRUE;
+    $mail->forward_replies = FALSE;
+    $mail->auto_responder = FALSE;
+    $mail->open_tracking = TRUE;
+    if ($mail->find(TRUE)) {
+      $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
+      if (version_compare('4.4alpha1', CRM_Core_Config::singleton()->civiVersion) > 0) {
+        $jobCLassName = 'CRM_Mailing_DAO_Job';
+      }
+
+      if (isset($params['contact_id']) && !empty($params['contact_id'])) {//We could bring contact_id in params by customizing activity bao file
+        $contactId = CRM_Utils_Array::value('contact_id', $params);
+      } else if (isset($params['contactId']) && !empty($params['contactId'])) {//Contribution/Event confirmation
+        $contactId = CRM_Utils_Array::value('contactId', $params);
+      } else {//As last option from emall address
+        $contactId = sparkpost_targetContactId($params);
+      }
+      
+      if (!$contactId) {
+        CRM_Core_Error::backtrace('backtrace before return in sparkpost alterMailParams', TRUE);
+        CRM_Core_Error::debug_var('Contact Id not known to attach header for this transactional email by Sparkpost extension possbile duplicates email hence skiping', $params);
+        return;
+      }
+      
+      if ($contactId) {
+        $eventQueueParams = array(
+          'job_id' => CRM_Core_DAO::getFieldValue($jobCLassName, $mail->id, 'id', 'mailing_id'),
+          'contact_id' => $contactId,
+          'email_id' => CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Email', $contactId, 'id', 'contact_id'),
+        );
+        $eventQueue = CRM_Mailing_Event_BAO_Queue::create($eventQueueParams);
+        $params['returnPath'] = implode(CRM_Core_Config::singleton()->verpSeparator, array('m', $eventQueueParams['job_id'], $eventQueue->id, $eventQueue->hash));//Add m to differentiate from bulk mailing
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_civicrm_postEmailSend
+ */
+function sparkpost_civicrm_postEmailSend(&$params) {
+  if (!empty($params['returnPath'])) {
+    $header = explode(CRM_Core_Config::singleton()->verpSeparator, $params['returnPath']);
+    $params = array(
+      'job_id' => $header[1],
+      'event_queue_id' => $header[2],
+      'hash' => $header[3],
+    );
+    CRM_Mailing_Event_BAO_Delivered::create($params);
+  }
+}
+
+/*
+ *
+ * Function to get contact id from email
+ *
+ * @param array $params - array of mail params
+ *
+ * return contact Id
+ */
+function sparkpost_targetContactId($params) {
+  $emailParams = array( 
+    'email' => trim($params['toEmail']),
+    'version' => 3,
+    'sequential' => 1,
+  );
+  $result = civicrm_api('email', 'get', $emailParams);
+  if (!$result['is_error'] && $result['count'] == 1) {
+    $contactId = $result['values'][0]['contact_id'];
+  } 
+  return $contactId;
 }

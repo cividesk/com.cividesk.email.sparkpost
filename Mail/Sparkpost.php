@@ -54,8 +54,8 @@ class Mail_Sparkpost extends Mail {
 
     $request_body = array(
       'options' => array(
-        'open_tracking' => FALSE,  // This will be done by CiviCRM
-        'click_tracking' => FALSE, // ditto
+        'open_tracking' => TRUE,  // Even though this will be done by CiviCRM for bulk mailing, If we want to process transactional and to process open and click event by sparkpost
+        'click_tracking' => TRUE, // same as above
       ),
       'recipients' => array(),
     );
@@ -64,8 +64,11 @@ class Mail_Sparkpost extends Mail {
       $request_body['metadata'] = array('X-CiviMail-Bounce' => CRM_Utils_Array::value("X-CiviMail-Bounce", $headers));
     } else {
       // Mark the email as transactional for SparkPost
-      $request_body['options']['transactional'] = true;
-    }
+        $request_body['options']['transactional'] = true;
+        if (CRM_Utils_Array::value('Return-Path', $headers)) {//attach metadata for transactional email
+          $request_body['metadata'] = array('X-CiviMail-Bounce' => CRM_Utils_Array::value("Return-Path", $headers));
+        }
+    } 
 
     // Capture the recipients
     $request_body['recipients'] = $this->formatRecipients($recipients);
