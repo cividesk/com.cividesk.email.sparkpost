@@ -69,6 +69,20 @@ class Mail_Sparkpost extends Mail {
           $request_body['metadata'] = array('X-CiviMail-Bounce' => CRM_Utils_Array::value("Return-Path", $headers));
         }
     } 
+    // Attach mailing name as campaign_id for sparkpost 
+    if (!empty($request_body['metadata'])) {
+      $metadata = explode(CRM_Core_Config::singleton()->verpSeparator, $request_body['metadata']['X-CiviMail-Bounce']); 
+      $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
+      if (version_compare('4.4alpha1', CRM_Core_Config::singleton()->civiVersion) > 0) {
+        $jobCLassName = 'CRM_Mailing_DAO_Job';
+      }
+      $mailing_id = CRM_Core_DAO::getFieldValue($jobCLassName, $metadata[1], 'mailing_id');
+      $mailing_name = CRM_Core_DAO::getFieldValue('CRM_Mailing_DAO_Mailing', $mailing_id, 'name');
+      if ($mailing_name) {
+        $request_body['campaign_id'] = $mailing_name;
+      }
+      
+    }
 
     // Capture the recipients
     $request_body['recipients'] = $this->formatRecipients($recipients);
