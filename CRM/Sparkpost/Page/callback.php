@@ -66,7 +66,7 @@ class CRM_Sparkpost_Page_callback extends CRM_Core_Page {
       if ($element->msys && (($event = $element->msys->message_event) || ($event = $element->msys->track_event))) {
         // Sanity checks
         if ( !in_array($event->type, array('bounce', 'spam_complaint', 'policy_rejection', 'open', 'click'))
-             || ($event->campaign_id && ($event->campaign_id != CRM_Sparkpost::getSetting('campaign')))
+             || ($event->campaign_id && CRM_Sparkpost::getSetting('campaign') && ($event->campaign_id != CRM_Sparkpost::getSetting('campaign')))
              || (!$event->rcpt_meta || !($civimail_bounce_id = $event->rcpt_meta->{'X-CiviMail-Bounce'}))
            ) {
           continue;
@@ -84,6 +84,12 @@ class CRM_Sparkpost_Page_callback extends CRM_Core_Page {
         $matches = array();
         if (preg_match($rpRegex, $civimail_bounce_id, $matches)) {
           list($match, $action, $job_id, $event_queue_id, $hash) = $matches;
+          
+          list($mailing_id, $mailing_name ) = Mail_Sparkpost::getMailing($job_id);
+          if (!$mailing_id) {
+            CRM_Core_Error::debug_var('No mailing found hence skiping in SparkPost extension call back', $matches);
+            continue;
+          }
 
           $params = array(
             'job_id' => $job_id,
@@ -120,13 +126,9 @@ class CRM_Sparkpost_Page_callback extends CRM_Core_Page {
                 if ($action == 'b') {//Civi Mailing do not process as done by CiviCRM
                   break;
                 }
-                $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
-                if (version_compare('4.4alpha1', CRM_Core_Config::singleton()->civiVersion) > 0) {
-                  $jobCLassName = 'CRM_Mailing_DAO_Job';
-                }
                 $tracker = new CRM_Mailing_BAO_TrackableURL();
                 $tracker->url = $event->target_link_url;
-                $tracker->mailing_id = CRM_Core_DAO::getFieldValue($jobCLassName, $job_id, 'mailing_id');
+                $tracker->mailing_id = $mailing_id;
                 if (!$tracker->find(TRUE)) {
                   $tracker->save();
                 }
