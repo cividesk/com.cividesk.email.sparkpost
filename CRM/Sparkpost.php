@@ -47,20 +47,6 @@ class CRM_Sparkpost {
       $defaults,
       CRM_Core_BAO_Setting::getItem(CRM_Sparkpost::SPARKPOST_EXTENSION_SETTINGS)
     );
-    // Adjust setting names for 4.7 compatibility
-    if (array_key_exists('apiKey', $settings) && !array_key_exists('sparkpost_apiKey', $settings)) {
-      $settings['sparkpost_apiKey'] = $settings['apiKey'];
-      CRM_Sparkpost::setSetting('sparkpost_apiKey', $settings['sparkpost_apiKey']);
-    }
-    // Decrypt API key if it is encrypted, encrypt it otherwise (v1.0 did not encrypt it)
-    if ($key = CRM_Utils_array::value('sparkpost_apiKey', $settings)) {
-      if (base_64_decode($key, TRUE)) {
-        $settings['sparkpost_apiKey'] = CRM_Utils_Crypt::decrypt($key);
-      } else {
-        // The setSettings function will encrypt before saving
-        CRM_Sparkpost::setSetting('sparkpost_apiKey', $key);
-      }
-    }
     // And finaly returm what was asked for ...
     if (!empty($setting)) {
       return CRM_Utils_Array::value($setting, $settings);
