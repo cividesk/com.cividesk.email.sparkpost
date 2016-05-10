@@ -74,7 +74,11 @@ class Mail_Sparkpost extends Mail {
       $metadata = explode(CRM_Core_Config::singleton()->verpSeparator, $request_body['metadata']['X-CiviMail-Bounce']); 
       list($mailing_id, $mailing_name ) = self::getMailing($metadata[1]);
       if ($mailing_name && $mailing_id) {
-        $request_body['campaign_id'] = $mailing_name.'( '.$mailing_id.' )';
+        $request_body['campaign_id'] = $mailing_name.'('.$mailing_id.')';
+        if (strlen($request_body['campaign_id']) > 64) {
+          $mailing_name         = substr($mailing_name, 0, 64 - (strlen($mailing_id) + 4));
+          $request_body['campaign_id'] = $mailing_name.'..('.$mailing_id.')';
+        }
       }
       
     }
