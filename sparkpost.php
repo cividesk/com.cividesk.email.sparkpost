@@ -61,13 +61,7 @@ function sparkpost_civicrm_install() {
   $mailing = CRM_Mailing_BAO_Mailing::add($mailingParams, CRM_Core_DAO::$_nullArray);
 
   //add entry in civicrm_mailing_job
-  $config = CRM_Core_Config::singleton();
-  if (property_exists($config, 'civiVersion')) {
-    $civiVersion = $config->civiVersion;
-  }
-  else {
-    $civiVersion = CRM_Core_BAO_Domain::version();
-  }
+  $civiVersion = CRM_Core_BAO_Domain::version();
   
   $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
   if (version_compare('4.4alpha1', $civiVersion) > 0) {
@@ -237,7 +231,8 @@ function sparkpost_civicrm_alterMailParams(&$params, $context = NULL) {
     $mail->open_tracking = TRUE;
     if ($mail->find(TRUE)) {
       $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
-      if (version_compare('4.4alpha1', CRM_Core_Config::singleton()->civiVersion) > 0) {
+      $civiVersion = CRM_Core_BAO_Domain::version();
+      if (version_compare('4.4alpha1', $civiVersion) > 0) {
         $jobCLassName = 'CRM_Mailing_DAO_Job';
       }
 
