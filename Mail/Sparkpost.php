@@ -155,7 +155,8 @@ class Mail_Sparkpost extends Mail {
       return;
     }
     $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
-    if (version_compare('4.4alpha1', CRM_Core_Config::singleton()->civiVersion) > 0) {
+    $civiVersion = CRM_Core_BAO_Domain::version();
+    if (version_compare('4.4alpha1', $civiVersion) > 0) {
       $jobCLassName = 'CRM_Mailing_DAO_Job';
     }
     $mailing_id = CRM_Core_DAO::getFieldValue($jobCLassName, $jobId, 'mailing_id');
