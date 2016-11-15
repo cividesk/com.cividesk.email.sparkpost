@@ -27,6 +27,8 @@ class CRM_Sparkpost {
   // Indicates we need to try sending emails out through an alternate method
   const FALLBACK = 1;
 
+  static $curl_session;
+
   static function setSetting($setting, $value) {
     // Encrypt API key before storing in database
     if ($setting == 'sparkpost_apiKey') {
@@ -80,35 +82,42 @@ class CRM_Sparkpost {
       $content['campaign_id'] = $campaign;
     }
 
+    // Start a cURL session to be shared across connections
+    if (!self::$curl_session) {
+      sparkpost_log('CRM_Sparkpost::call(): initialising cURL session');
+      self::$curl_session = curl_init();
+    }
+
     // Initialize connection and set headers
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://api.sparkpost.com/api/v1/$path");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+
+    curl_setopt(self::$curl_session, CURLOPT_URL, "https://api.sparkpost.com/api/v1/$path");
+    curl_setopt(self::$curl_session, CURLOPT_RETURNTRANSFER, TRUE);
     $request_headers = array();
     $request_headers[] = 'Content-Type: application/json';
     $request_headers[] = 'Authorization: ' . $authorization;
     $request_headers[] = 'User-Agent: CiviCRM SparkPost extension (com.cividesk.email.sparkpost)';
-    curl_setopt($ch, CURLOPT_HEADER, FALSE);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $request_headers);
+    curl_setopt(self::$curl_session, CURLOPT_HEADER, FALSE);
+    curl_setopt(self::$curl_session, CURLOPT_HTTPHEADER, $request_headers);
 
     if (!empty($content)) {
       if (strpos($path, '/') !== false) {
         // ie. webhook/id
         // This is a modify operation so use PUT
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt(self::$curl_session, CURLOPT_CUSTOMREQUEST, "PUT");
       } else {
         // ie. webhook, transmission
         // This is a create operation so use POST
-        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt(self::$curl_session, CURLOPT_POST, TRUE);
       }
-      curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($content, JSON_UNESCAPED_SLASHES));
+      curl_setopt(self::$curl_session, CURLOPT_POSTFIELDS, json_encode($content, JSON_UNESCAPED_SLASHES));
     }
-    $data = curl_exec($ch);
-    if (curl_errno($ch)) {
-      throw new Exception('Sparkpost curl error: ', curl_error($ch));
+    $data = curl_exec(self::$curl_session);
+    if (curl_errno(self::$curl_session)) {
+      throw new Exception('Sparkpost curl error: ', curl_error(self::$curl_session));
     }
-    $curl_info = curl_getinfo($ch);
-    curl_close($ch);
+    $curl_info = curl_getinfo(self::$curl_session);
+
+    sparkpost_log('CRM_Sparkpost::call(): total call time ' . $curl_info['total_time']);
 
     // Treat errors if any in the response ...
     $response = json_decode($data);
