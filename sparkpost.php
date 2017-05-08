@@ -47,6 +47,44 @@ function sparkpost_civicrm_install() {
   _sparkpost_civix_civicrm_install();
   // Check dependencies and display error messages
   sparkpost_check_dependencies();
+  $mailingParams = array(
+    'subject' => '***All Transactional Emails Through Sparkpost***',
+    'name' => ts('Transaction Emails Sparkpost'),
+    'url_tracking' => TRUE,
+    'forward_replies' => FALSE,
+    'auto_responder' => FALSE,
+    'open_tracking' => TRUE,
+    'is_completed' => FALSE,
+  );
+
+  //create entry in civicrm_mailing
+  $mailing = CRM_Mailing_BAO_Mailing::add($mailingParams, CRM_Core_DAO::$_nullArray);
+
+  //add entry in civicrm_mailing_job
+  $config = CRM_Core_Config::singleton();
+  if (property_exists($config, 'civiVersion')) {
+    $civiVersion = $config->civiVersion;
+  }
+  else {
+    $civiVersion = CRM_Core_BAO_Domain::version();
+  }
+  
+  $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
+  if (version_compare('4.4alpha1', $civiVersion) > 0) {
+    $jobCLassName = 'CRM_Mailing_DAO_Job';
+  }
+  
+  $changeENUM = FALSE;
+  if (version_compare('4.5alpha1', $civiVersion) > 0) {
+    $changeENUM = TRUE;
+  }
+  CRM_Core_Smarty::singleton()->assign('changeENUM', $changeENUM);
+  $saveJob = new $jobCLassName();
+  $saveJob->start_date = $saveJob->end_date = date('YmdHis');
+  $saveJob->status = 'Complete';
+  $saveJob->job_type = "Special: All transactional emails being sent through Sparkpost";
+  $saveJob->mailing_id = $mailing->id;
+  $saveJob->save();
 }
 
 /**
@@ -198,4 +236,39 @@ function sparkpost_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
 function sparkpost_log($message) {
   $config = CRM_Core_Config::singleton();
   file_put_contents($config->configAndLogDir . 'sparkpost_log', $message . PHP_EOL, FILE_APPEND);
+}
+
+function sparkpost_civicrm_alterMailParams(&$params, $context = NULL) {
+  if ($context != 'civimail') {//Create meta data for transactional email
+    $mail = new CRM_Mailing_DAO_Mailing();
+    $mail->subject = "***All Transactional Emails Through Sparkpost***";
+    $mail->url_tracking = TRUE;
+    $mail->forward_replies = FALSE;
+    $mail->auto_responder = FALSE;
+    $mail->open_tracking = TRUE;
+    if ($mail->find(TRUE)) {
+      $jobCLassName = 'CRM_Mailing_DAO_MailingJob';
+      if (version_compare('4.4alpha1', CRM_Core_Config::singleton()->civiVersion) > 0) {
+        $jobCLassName = 'CRM_Mailing_DAO_Job';
+      }
+
+      if (isset($params['contact_id']) && !empty($params['contact_id'])) {//We could bring contact_id in params by customizing activity bao file
+        $contactId = CRM_Utils_Array::value('contact_id', $params);
+      } else if (isset($params['contactId']) && !empty($params['contactId'])) {//Contribution/Event confirmation
+        $contactId = CRM_Utils_Array::value('contactId', $params);
+      } else {//As last option from emall address
+        $contactId = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Email', trim($params['toEmail']), 'contact_id', 'email');
+      }
+      
+      if ($contactId) {
+        $eventQueueParams = array(
+          'job_id' => CRM_Core_DAO::getFieldValue($jobCLassName, $mail->id, 'id', 'mailing_id'),
+          'contact_id' => $contactId,
+          'email_id' => CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Email', $contactId, 'id', 'contact_id'),
+        );
+        $eventQueue = CRM_Mailing_Event_BAO_Queue::create($eventQueueParams);
+        $params['returnPath'] = implode(CRM_Core_Config::singleton()->verpSeparator, array('b', $eventQueueParams['job_id'], $eventQueue->id, $eventQueue->hash));
+      }
+    }
+  }
 }
