@@ -41,7 +41,7 @@ class CRM_Sparkpost {
       // Reset HTTP request method to GET as it might have been changed to POST or DELETE
       // cf. https://stackoverflow.com/questions/4163865/how-to-reset-curlopt-customrequest
       curl_setopt(self::$ch, CURLOPT_HTTPGET, TRUE);
-      curl_setopt(self::$ch, CURLOPT_CUSTOMREQUEST, NULL);
+      curl_setopt(self::$ch, CURLOPT_CUSTOMREQUEST, "GET");
     }
     return self::$ch;
   }
