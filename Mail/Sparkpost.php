@@ -72,12 +72,23 @@ class Mail_Sparkpost extends Mail {
     list($from, $textHeaders) = $headerElements;
 
     // Default options: do not track opens and clicks as CiviCRM does it
-    $request_body = array(
-      'options' => array(
-        'open_tracking' => FALSE,  // This will be done by CiviCRM
-        'click_tracking' => FALSE, // ditto
-      )
-    );
+	$sp_tracking = CRM_Sparkpost::getSetting('sparkpost_track');
+	if ($sp_tracking) {
+		$request_body = array(
+          'options' => array(
+          'open_tracking' => TRUE,  // This will be done by CiviCRM
+          'click_tracking' => TRUE, // ditto
+          )
+        );
+	}
+	else {
+	   	$request_body = array(
+          'options' => array(
+          'open_tracking' => FALSE,  // This will be done by CiviCRM
+          'click_tracking' => FALSE, // ditto
+          )
+        );
+	}
     // Should we send via a dedicated IP pool?
     $ip_pool = CRM_Sparkpost::getSetting('sparkpost_ipPool');
     if (!empty($ip_pool)) {
