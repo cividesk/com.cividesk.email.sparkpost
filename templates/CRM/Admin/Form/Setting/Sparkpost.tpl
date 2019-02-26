@@ -8,6 +8,13 @@
         <fieldset>
             <legend>{ts}SparkPost Configuration{/ts}</legend>
             <table class="form-layout-compressed">
+				<tr class="crm-sparkpost-form-block-sparkpost_EU">
+                    <td class="label">{$form.sparkpost_EU.label}</td>
+                    <td>{$form.sparkpost_EU.html}<br  />
+                        <span class="description">{ts}Is your account is declared in Europe?{/ts}
+                        </span>
+                    </td>
+                </tr>
                 <tr class="crm-sparkpost-form-block-sparkpost_apiKey">
                     <td class="label">{$form.sparkpost_apiKey.label}</td>
                     <td>{$form.sparkpost_apiKey.html}<br  />
@@ -34,6 +41,13 @@
                     <td class="label">{$form.sparkpost_customCallbackUrl.label}</td>
                     <td>{$form.sparkpost_customCallbackUrl.html}<br  />
                         <span class="description">{ts 1=$smtpURL}A custom callback URL is useful when your site is behind a proxy (like CiviProxy). Leave this blank to use the default URL.{/ts}
+                        </span>
+                    </td>
+                </tr>
+				<tr class="crm-sparkpost-form-block-sparkpost_track">
+                    <td class="label">{$form.sparkpost_track.label}</td>
+                    <td>{$form.sparkpost_track.html}<br  />
+                        <span class="description">{ts}Allow Sparkpost to track opened mails ?{/ts}
                         </span>
                     </td>
                 </tr>
