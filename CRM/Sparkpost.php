@@ -42,9 +42,11 @@ class CRM_Sparkpost {
     // Start with the default values for settings
     $settings = array(
       'sparkpost_useBackupMailer' => false,
+      'sparkpost_track' => false,
+  	  'sparkpost_EU' => false,
     );
     // Merge the settings defined in DB (no more groups in 4.7, so has to be one by one ...)
-    foreach (array('sparkpost_apiKey', 'sparkpost_useBackupMailer', 'sparkpost_campaign', 'sparkpost_ipPool', 'sparkpost_customCallbackUrl') as $name) {
+    foreach (array('sparkpost_apiKey', 'sparkpost_useBackupMailer', 'sparkpost_campaign', 'sparkpost_ipPool', 'sparkpost_customCallbackUrl', 'sparkpost_track', 'sparkpost_EU' ) as $name) {
       $value = CRM_Core_BAO_Setting::getItem(CRM_Sparkpost::SPARKPOST_EXTENSION_SETTINGS, $name);
       if (!is_null($value)) {
         $settings[$name] = $value;
@@ -81,8 +83,15 @@ class CRM_Sparkpost {
     }
 
     // Initialize connection and set headers
+    $is_EU = CRM_Sparkpost::getSetting('sparkpost_EU');
+  	if ($is_EU) {
+  		$sp_domain = "eu.sparkpost.com";
+  	}
+  	else {
+  		$sp_domain = "sparkpost.com";
+  	}
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://api.sparkpost.com/api/v1/$path");
+    curl_setopt($ch, CURLOPT_URL, "https://api." . $sp_domain ."/api/v1/" . $path);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
     $request_headers = array();
     $request_headers[] = 'Content-Type: application/json';
@@ -152,7 +161,7 @@ class CRM_Sparkpost {
             throw new Exception("Sparkpost error: Sending limits exceeded. Check your limits in the Sparkpost console.", CRM_Sparkpost::FALLBACK);
         }
         // Don't have specifics, so throw a generic exception
-        throw new Exception("Sparkpost error: HTTP return code $curl_info[http_code], Sparkpost error code $error->code ($error->message: $error->description). Check https://support.sparkpost.com/customer/en/portal/articles/2140916-extended-error-codes for interpretation.");
+        throw new Exception("Sparkpost error: HTTP return code $curl_info[http_code], Sparkpost error code $error->code ($error->message: $error->description). Check https://support." . $sp_domain . "/customer/en/portal/articles/2140916-extended-error-codes for interpretation.");
       }
     }
 
