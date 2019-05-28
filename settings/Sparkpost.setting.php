@@ -6,6 +6,19 @@
 require_once(__DIR__ . "/../CRM/Sparkpost.php");
 
 return array(
+  'sparkpost_EU' => array(
+    'group_name' => CRM_Sparkpost::SPARKPOST_EXTENSION_SETTINGS,
+    'group' => 'com.cividesk.email.sparkpost',
+    'name' => 'sparkpost_EU',
+    'type' => 'Boolean',
+    'html_type' => 'radio',
+    'default' => FALSE,
+    'add' => '4.4',
+    'is_domain' => 1,
+    'is_contact' => 0,
+    'description' => 'Is your account is declared in Europe?',
+    'help_text' => 'European accounts have to use *.eu.sparkpost.com',
+  ),
   'sparkpost_apiKey' => array(
     'group_name' => CRM_Sparkpost::SPARKPOST_EXTENSION_SETTINGS,
     'group' => 'com.cividesk.email.sparkpost',
@@ -17,7 +30,7 @@ return array(
     'is_domain' => 1,
     'is_contact' => 0,
     'description' => 'SparkPost REST API key',
-    'help_text' => 'You can create API keys at: https://app.sparkpost.com/account/api-keys',
+    'help_text' => 'You can create API keys at: https://app.sparkpost.com/account/credentials, or https://app.eu.sparkpost.com/account/credentials for european accounts',
   ),
   'sparkpost_customCallbackUrl' => array(
     'group_name' => CRM_Sparkpost::SPARKPOST_EXTENSION_SETTINGS,
@@ -44,5 +57,18 @@ return array(
     'is_contact' => 0,
     'description' => 'Use backup mailer?',
     'help_text' => 'The backup mailer will be used if Sparkpost cannot send emails (unverified sending domain, sending limits exceeded, ...).',
+  ),
+  'sparkpost_track' => array(
+    'group_name' => CRM_Sparkpost::SPARKPOST_EXTENSION_SETTINGS,
+    'group' => 'com.cividesk.email.sparkpost',
+    'name' => 'sparkpost_track',
+    'type' => 'Boolean',
+    'html_type' => 'radio',
+    'default' => FALSE,
+    'add' => '4.4',
+    'is_domain' => 1,
+    'is_contact' => 0,
+    'description' => 'Allow Sparkpost to track opened mails ?',
+    'help_text' => 'Allow to track activities of transactionnal mails',
   ),
 );
