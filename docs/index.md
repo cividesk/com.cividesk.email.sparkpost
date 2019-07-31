@@ -20,3 +20,5 @@ See [bounce processing](bounce-processing.md) for more information.
 
 
 Opens and click-throughs are still tracked by CiviCRM as there is no added-value in having these tracked by SparkPost.
+
+View this extension in the [Extension Directory](https://civicrm.org/extensions/sparkpost-email-extension-for-civicrm).
