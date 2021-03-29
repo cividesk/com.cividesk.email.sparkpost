@@ -45,4 +45,16 @@ This extension requires:
     1. Go to **Administer > System Settings > Outbound Email** (SparkPost)
     1. Enter the API key created above and click **Save and Send test email**
     1. Check the on-screen messages for any error you would need to resolve
+    
+## Recommended Additional Configuration
 
+1. In SparkPost > Settings > IP Pools, configure an IP pool. If necessary, upgrade your account so you can do this, as it as
+greatly assists in avoiding blacklisting from the bad actions of other SparkPost customers. 
+Note the ID of the IP pool, eg 'default'.
+1. In CiviCRM > Administer > System Settings > Outbound Email (SparkPost), enter the ID of the IP Pool in the IP Pool field.
+1. In SparkPost > Settings > SMTP Settings, turn on SMTP Engagement Tracking.
+2. In SparkPost > Settings > Sending Domains, create a second domain for bounces following the SparkPost instructions.
+3. In SparkPost > Settings > Tracking Domains, create a third domain for tracking following the SparkPost instructions.
+1. In CiviCRM > Administer > System Settings > Outbound Email (SparkPost), set Use backup mailer to Yes, and configure confgure
+your backup mailer at civicrm/admin/setting/smtp?reset=1 (eg using mail(), NOT the configuration suggested by Sparkpost to send to 
+Sparkpost via SMTP).
