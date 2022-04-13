@@ -22,7 +22,7 @@ This extension requires:
     1. Go to **Administer > Customize Data and Screens > Manage Extensions**, and click **install** for this extension
 
 1. Sign-up for a SparkPost account, then:
-    1. Create and verify your sending domain(s) at: https://app.sparkpost.com/account/sending-domains. Within CiviCRM, sending email addresses are managed at:
+    1. Create and verify your sending domain(s) at: https://app.sparkpost.com/domains/list/sending. Within CiviCRM, sending email addresses are managed at:
         1. **Administer > Communications > Organization Address and Contact Info**,
         1. and **Administer > CiviMail > From Email Address**.
 

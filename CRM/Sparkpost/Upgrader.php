@@ -84,6 +84,69 @@ class CRM_Sparkpost_Upgrader extends CRM_Sparkpost_Upgrader_Base {
   }
 
   /**
+   * Database upgrade for version 1.5
+   *
+   * Re-encrypt Sparkpost API key.
+   *
+   * @return TRUE on Success
+   * @throws Exception
+   */
+  public function upgrade_1500() {
+    $this->ctx->log->info('Applying update 1500 - Re-encrypt Sparkpost API key using new crypto service');
+    $cryptoRegistry = \Civi\Crypto\CryptoRegistry::createDefaultRegistry();
+    $cryptoToken = new \Civi\Crypto\CryptoToken($cryptoRegistry);
+    $keys = civicrm_api3('Setting', 'get', [
+      'domain_id' => 'all',
+      'options' => ['limit' => 0],
+    ]);
+
+    foreach ($keys['values'] as $domain => $settings) {
+      if (array_key_exists('sparkpost_apiKey', $settings)) {
+        $key = CRM_Utils_Crypt::decrypt($settings['sparkpost_apiKey']);
+        if (!self::canbeStored($key, $cryptoRegistry) {
+          $key = '';
+        }
+        else {
+          $key = $cryptoToken->encrypt($key, 'CRED');
+        }
+        civicrm_api3('Setting', 'create', [
+          'sparkpost_apiKey' => $key,
+          'domain_id' => $domain,
+        ]);
+      }
+      return TRUE;
+    }
+  }
+
+  /**
+   * If you decode an old value of smtpPassword, will it be possible to store that
+   * password in the updated format?
+   *
+   * If you actually have encryption enabled, then it's straight-yes. But if you
+   * have to write in plain-text, then you're working within the constraints
+   * of php-mysqli-utf8mb4, and it does not accept anything > chr(128).
+   *
+   * Note: This could potentially change in the future if we updated `CryptToken`
+   * to put difficult strings into `^CTK?k=plain&t={base64}` format.
+   *
+   * @param string $oldCipherText
+   * @param \Civi\Crypto\CryptoRegistry $registry
+   * @return bool
+   * @throws \Civi\Crypto\Exception\CryptoException
+   */
+  protected static function canBeStored($oldCipherText, \Civi\Crypto\CryptoRegistry $registry) {
+    $plainText = CRM_Utils_Crypt::decrypt($oldCipherText);
+    $activeKey = $registry->findKey('CRED');
+    $isPrintable = ctype_print($plainText);
+    if ($activeKey['suite'] === 'plain' && !$isPrintable) {
+      return FALSE;
+    }
+    else {
+      return TRUE;
+    }
+  }
+
+  /**
    * Example: Run an external SQL script.
    *
    * @return TRUE on success

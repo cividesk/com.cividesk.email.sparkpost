@@ -30,7 +30,7 @@ class CRM_Sparkpost {
   public static function setSetting($setting, $value) {
     // Encrypt API key before storing in database
     if ($setting == 'sparkpost_apiKey') {
-      $value = CRM_Utils_Crypt::encrypt($value);
+      $value = Civi::service('crypto.token')->encrypt($value, 'CRED');
     }
     return Civi::settings()->set($setting, $value);
   }
@@ -49,7 +49,7 @@ class CRM_Sparkpost {
       }
     }
     // Decrypt API key before returning
-    $settings['sparkpost_apiKey'] = CRM_Utils_Crypt::decrypt($settings['sparkpost_apiKey']);
+    $settings['sparkpost_apiKey'] = Civi::service('crypto.token')->decrypt($settings['sparkpost_apiKey'], ['plain', 'CRED']);
     // And finaly returm what was asked for ...
     if (!empty($setting)) {
       return CRM_Utils_Array::value($setting, $settings);
