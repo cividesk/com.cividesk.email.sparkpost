@@ -1,3 +1,7 @@
+# MOVED
+
+This project is moved to: https://lab.civicrm.org/extensions/sparkpost
+
 # SparkPost email extension for CiviCRM
 
 This extension allows CiviCRM to send emails and process bounces through the SparkPost service.
